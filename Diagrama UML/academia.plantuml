@@ -1,0 +1,429 @@
+@startuml "academia"
+
+' ==================== USUÁRIOS E AUTENTICAÇÃO ====================
+abstract class Usuario {
+  - id: Long
+  - nome: String
+  - cpf: String
+  - email: String
+  - telefone: String
+  - foto: String
+  - senha: String
+  - status: StatusUsuario
+  - dataCadastro: Date
+  + autenticar(): boolean
+  + recuperarSenha(): void
+  + atualizarDados(): void
+}
+
+enum StatusUsuario {
+  ATIVO
+  INATIVO
+  BLOQUEADO
+}
+
+class Aluno extends Usuario {
+  - qrCode: QRCode
+  - planoAtivo: Plano
+  - fichaAtiva: FichaTreino
+  + realizarCheckIn(): void
+  + visualizarTreino(): FichaTreino
+  + marcarExercicioConcluido(): void
+  + reservarAula(): void
+}
+
+class Professor extends Usuario {
+  - especialidades: List<String>
+  + criarFichaTreino(): FichaTreino
+  + registrarAvaliacao(): AvaliacaoFisica
+  + visualizarAlunos(): List<Aluno>
+}
+
+class Recepcionista extends Usuario {
+  + validarAcesso(): boolean
+  + registrarPagamento(): void
+  + cadastrarAluno(): void
+}
+
+class Administrador extends Usuario {
+  + gerenciarUsuarios(): void
+  + configurarPermissoes(): void
+  + visualizarRelatorios(): void
+}
+
+' ==================== PADRÃO STRATEGY - AUTENTICAÇÃO ====================
+interface AutenticacaoStrategy {
+  + autenticar(credenciais): boolean
+}
+
+class AutenticacaoEmail implements AutenticacaoStrategy {
+  + autenticar(credenciais): boolean
+}
+
+class AutenticacaoTelefone implements AutenticacaoStrategy {
+  + autenticar(credenciais): boolean
+}
+
+class AutenticacaoQRCode implements AutenticacaoStrategy {
+  + autenticar(credenciais): boolean
+}
+
+' ==================== PADRÃO FACTORY - NOTIFICAÇÕES ====================
+interface Notificacao {
+  + enviar(destinatario, mensagem): void
+}
+
+class NotificacaoEmail implements Notificacao {
+  + enviar(destinatario, mensagem): void
+}
+
+class NotificacaoSMS implements Notificacao {
+  + enviar(destinatario, mensagem): void
+}
+
+class NotificacaoPush implements Notificacao {
+  + enviar(destinatario, mensagem): void
+}
+
+class NotificacaoWhatsApp implements Notificacao {
+  + enviar(destinatario, mensagem): void
+}
+
+class NotificacaoFactory {
+  + criarNotificacao(tipo): Notificacao
+}
+
+' ==================== PADRÃO OBSERVER - SISTEMA DE EVENTOS ====================
+interface Observer {
+  + atualizar(evento): void
+}
+
+class NotificadorPagamento implements Observer {
+  + atualizar(evento): void
+}
+
+class NotificadorTreino implements Observer {
+  + atualizar(evento): void
+}
+
+class NotificadorAvaliacao implements Observer {
+  + atualizar(evento): void
+}
+
+class GerenciadorEventos {
+  - observers: List<Observer>
+  + registrarObserver(observer): void
+  + removerObserver(observer): void
+  + notificarObservers(evento): void
+}
+
+' ==================== GESTÃO FINANCEIRA ====================
+class Plano {
+  - id: Long
+  - nome: String
+  - valor: BigDecimal
+  - duracao: Integer
+  - modalidades: List<Modalidade>
+  - status: StatusPlano
+  + calcularValorTotal(): BigDecimal
+  + isAtivo(): boolean
+}
+
+enum StatusPlano {
+  ATIVO
+  INATIVO
+}
+
+class Modalidade {
+  - id: Long
+  - nome: String
+  - descricao: String
+}
+
+class Mensalidade {
+  - id: Long
+  - aluno: Aluno
+  - plano: Plano
+  - vencimento: Date
+  - valor: BigDecimal
+  - status: StatusMensalidade
+  + calcularMultaJuros(): BigDecimal
+  + isVencida(): boolean
+}
+
+enum StatusMensalidade {
+  PENDENTE
+  PAGA
+  ATRASADA
+  CANCELADA
+}
+
+' ==================== PADRÃO STRATEGY - PAGAMENTO ====================
+interface PagamentoStrategy {
+  + processar(valor): boolean
+  + gerarComprovante(): String
+}
+
+class PagamentoBoleto implements PagamentoStrategy {
+  + processar(valor): boolean
+  + gerarComprovante(): String
+  + gerarBoleto(): String
+}
+
+class PagamentoPix implements PagamentoStrategy {
+  + processar(valor): boolean
+  + gerarComprovante(): String
+  + gerarQRCode(): String
+}
+
+class PagamentoCartao implements PagamentoStrategy {
+  + processar(valor): boolean
+  + gerarComprovante(): String
+}
+
+class Pagamento {
+  - id: Long
+  - mensalidade: Mensalidade
+  - data: Date
+  - valor: BigDecimal
+  - formaPagamento: PagamentoStrategy
+  - comprovante: String
+  + processar(): boolean
+}
+
+' ==================== GESTÃO DE TREINOS ====================
+class FichaTreino {
+  - id: Long
+  - aluno: Aluno
+  - professor: Professor
+  - dataCriacao: Date
+  - dataValidade: Date
+  - status: StatusFicha
+  - exercicios: List<ExercicioFicha>
+  + clonar(): FichaTreino
+  + ativar(): void
+  + inativar(): void
+}
+
+enum StatusFicha {
+  ATIVA
+  INATIVA
+  EXPIRADA
+}
+
+class ExercicioFicha {
+  - id: Long
+  - exercicio: Exercicio
+  - ordem: Integer
+  - series: Integer
+  - repeticoes: String
+  - carga: BigDecimal
+  - observacoes: String
+}
+
+class Exercicio {
+  - id: Long
+  - nome: String
+  - grupoMuscular: String
+  - equipamento: String
+  - descricao: String
+  - videoUrl: String
+}
+
+class TreinoRealizado {
+  - id: Long
+  - aluno: Aluno
+  - ficha: FichaTreino
+  - data: Date
+  - observacoes: String
+  - exerciciosExecutados: List<ExercicioExecutado>
+  + registrarExercicio(): void
+}
+
+class ExercicioExecutado {
+  - id: Long
+  - exercicio: Exercicio
+  - cargaUtilizada: BigDecimal
+  - concluido: boolean
+}
+
+' ==================== GESTÃO DE AVALIAÇÕES ====================
+class AvaliacaoFisica {
+  - id: Long
+  - aluno: Aluno
+  - avaliador: Professor
+  - data: Date
+  - peso: BigDecimal
+  - altura: BigDecimal
+  - imc: BigDecimal
+  - medidasCorporais: MedidasCorporais
+  - composicaoCorporal: ComposicaoCorporal
+  - fotos: List<FotoAvaliacao>
+  + calcularIMC(): BigDecimal
+  + calcularTMB(): BigDecimal
+  + compararCom(outra): RelatorioComparativo
+}
+
+class MedidasCorporais {
+  - pescoco: BigDecimal
+  - peitoral: BigDecimal
+  - cintura: BigDecimal
+  - quadril: BigDecimal
+  - coxa: BigDecimal
+  - panturrilha: BigDecimal
+  - braco: BigDecimal
+}
+
+class ComposicaoCorporal {
+  - percentualGordura: BigDecimal
+  - massaMagra: BigDecimal
+  - massaGorda: BigDecimal
+}
+
+class FotoAvaliacao {
+  - id: Long
+  - tipo: TipoFoto
+  - url: String
+}
+
+enum TipoFoto {
+  FRENTE
+  COSTAS
+  LATERAL
+}
+
+' ==================== CONTROLE DE ACESSO ====================
+class QRCode {
+  - id: Long
+  - aluno: Aluno
+  - codigo: String
+  - dataGeracao: Date
+  - dataExpiracao: Date
+  + isValido(): boolean
+  + renovar(): void
+}
+
+class HistoricoAcesso {
+  - id: Long
+  - aluno: Aluno
+  - dataHoraEntrada: DateTime
+  - dataHoraSaida: DateTime
+  - catracaId: String
+  + registrarEntrada(): void
+  + registrarSaida(): void
+}
+
+class ValidadorAcesso {
+  + validarQRCode(qrCode): boolean
+  + verificarAdimplencia(aluno): boolean
+  + verificarPlanoAtivo(aluno): boolean
+  + liberarCatraca(): void
+}
+
+' ==================== AULAS COLETIVAS ====================
+class TipoAula {
+  - id: Long
+  - nome: String
+  - descricao: String
+  - duracao: Integer
+}
+
+class HorarioAula {
+  - id: Long
+  - tipoAula: TipoAula
+  - professor: Professor
+  - diaSemana: DiaSemana
+  - horario: Time
+  - capacidade: Integer
+  - sala: String
+  - agendamentos: List<Agendamento>
+  + temVaga(): boolean
+}
+
+enum DiaSemana {
+  SEGUNDA
+  TERCA
+  QUARTA
+  QUINTA
+  SEXTA
+  SABADO
+  DOMINGO
+}
+
+class Agendamento {
+  - id: Long
+  - aluno: Aluno
+  - horarioAula: HorarioAula
+  - data: Date
+  - status: StatusAgendamento
+  - presenca: PresencaAula
+  + confirmar(): void
+  + cancelar(): void
+}
+
+enum StatusAgendamento {
+  CONFIRMADO
+  CANCELADO
+  AGUARDANDO
+}
+
+class PresencaAula {
+  - id: Long
+  - presente: boolean
+  - dataCheckin: DateTime
+  + registrarPresenca(): void
+}
+
+' ==================== PADRÃO SINGLETON - RELATÓRIOS ====================
+class GeradorRelatorios {
+  - {static} instancia: GeradorRelatorios
+  - {static} getInstance(): GeradorRelatorios
+  + gerarRelatorioInadimplencia(): Relatorio
+  + gerarRelatorioFrequencia(): Relatorio
+  + gerarRelatorioReceita(): Relatorio
+  + gerarDashboard(): Dashboard
+}
+
+class Relatorio {
+  - tipo: TipoRelatorio
+  - dataGeracao: Date
+  - dados: Object
+  + exportarPDF(): File
+  + exportarExcel(): File
+}
+
+enum TipoRelatorio {
+  INADIMPLENCIA
+  FREQUENCIA
+  RECEITA
+  OCUPACAO
+}
+
+' ==================== RELACIONAMENTOS ====================
+Usuario "1" -- "1..*" AutenticacaoStrategy : usa
+NotificacaoFactory ..> Notificacao : cria
+GerenciadorEventos "1" o-- "0..*" Observer : notifica
+Aluno "1" -- "0..1" Plano : possui
+Aluno "1" -- "0..1" FichaTreino : possui
+Aluno "1" -- "1" QRCode : possui
+Plano "1" *-- "1..*" Modalidade : contém
+Mensalidade "*" -- "1" Aluno
+Mensalidade "*" -- "1" Plano
+Pagamento "*" -- "1" Mensalidade
+Pagamento "1" -- "1" PagamentoStrategy : usa
+FichaTreino "1" *-- "1..*" ExercicioFicha : contém
+ExercicioFicha "*" -- "1" Exercicio
+TreinoRealizado "1" *-- "1..*" ExercicioExecutado
+TreinoRealizado "*" -- "1" FichaTreino
+AvaliacaoFisica "1" *-- "1" MedidasCorporais
+AvaliacaoFisica "1" *-- "1" ComposicaoCorporal
+AvaliacaoFisica "1" *-- "0..*" FotoAvaliacao
+ValidadorAcesso ..> QRCode : valida
+HistoricoAcesso "*" -- "1" Aluno
+HorarioAula "1" *-- "0..*" Agendamento
+HorarioAula "*" -- "1" TipoAula
+HorarioAula "*" -- "1" Professor
+Agendamento "1" -- "0..1" PresencaAula
+Agendamento "*" -- "1" Aluno
+
+@enduml
